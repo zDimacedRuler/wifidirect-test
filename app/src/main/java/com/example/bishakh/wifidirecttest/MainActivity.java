@@ -3,6 +3,9 @@ package com.example.bishakh.wifidirecttest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -13,7 +16,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.net.Inet4Address;
@@ -21,10 +27,15 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     LinearLayout mainlayout;
+    LinearLayout neighbourlayout;
+    TextView logText;
+    ScrollView scrollView;
 
     IntentFilter mIntentFilter;
 
@@ -33,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     BroadcastReceiver mReceiver;
     WifiP2pManager.ConnectionInfoListener mListener;
 
+    // PeerListListener
     WifiP2pManager.PeerListListener myPeerListListener =  new WifiP2pManager.PeerListListener() {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
@@ -41,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
             int devicesCount = deviceList.size();
             int iii = 0;
             final Button deviceButtons[] = new Button[devicesCount];
+            neighbourlayout.removeAllViews();
             for (WifiP2pDevice device:deviceList){
                 Log.v("DEBUG", "Device: " + device.deviceAddress);
                 deviceButtons[iii] = new Button(getApplicationContext());
@@ -62,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
                                 Log.v("DEBUG", "Connection Success: " + config.deviceAddress);
                                 Toast.makeText(getApplicationContext(), "Connection Success: " + config.deviceAddress,
                                         Toast.LENGTH_LONG).show();
+                                logText.setText(logText.getText() + "\nConnection Success: " + config.deviceAddress);
                                 mManager.requestConnectionInfo (mChannel,
                                         mListener);
 
@@ -77,22 +91,42 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                 });
-                mainlayout.addView(deviceButtons[iii]);
+                neighbourlayout.addView(deviceButtons[iii]);
             }
 
         }
     };
 
 
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        scrollView = new ScrollView(getApplicationContext());
         mainlayout = new LinearLayout(getApplicationContext());
-        setContentView(mainlayout);
+        mainlayout.setOrientation(LinearLayout.VERTICAL);
+        scrollView.addView(mainlayout);
+        neighbourlayout = new LinearLayout(getApplicationContext());
+        neighbourlayout.setOrientation(LinearLayout.VERTICAL);
+        setContentView(scrollView);
 
+        logText = new TextView(getApplicationContext());
+        logText.setTextColor(Color.BLUE);
         Button discoverButton = new Button(getApplicationContext());
+        final Button printInfoButton = new Button(getApplicationContext());
+        printInfoButton.setText("Print Info");
+        printInfoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                printInfo();
+            }
+        });
         discoverButton.setText("Discover Peers");
+        mainlayout.addView(printInfoButton);
         mainlayout.addView(discoverButton);
+        mainlayout.addView(neighbourlayout);
+        mainlayout.addView(logText);
         discoverButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -114,20 +148,38 @@ public class MainActivity extends AppCompatActivity {
         mListener = new WifiP2pManager.ConnectionInfoListener() {
             @Override
             public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
+                logText.setText(logText.getText() + "\n" +
+                        "INFO:");
                 try {
 
                     Log.v("DEBUG", "Connection Group Owner address: " + wifiP2pInfo.groupOwnerAddress.toString());
+                    logText.setText(logText.getText() + "\nConnection Group Owner address: " + wifiP2pInfo.groupOwnerAddress.toString());
                 }catch (Exception e){}
 
                 Log.v("DEBUG", "Group Formed: " + wifiP2pInfo.groupFormed);
+                logText.setText(logText.getText() + "\nGroup Formed: " + wifiP2pInfo.groupFormed);
 
-                String ip = getDottedDecimalIP(getLocalIPAddress());
+                if(wifiP2pInfo.isGroupOwner){
+                    Log.v("DEBUG", "I am group owner");
+                    logText.setText(logText.getText() + "\nI am group owner");
+                }
 
-                Log.v("DEBUG", "My IP: " + ip);
 
+                try {
+                   String ip = getDottedDecimalIP(getLocalIPAddress());
+
+                   Log.v("DEBUG", "My IP: " + ip);
+                   logText.setText(logText.getText() + "\nMy IP: " + ip);
+               }catch (Exception e){
+
+               }
 
             }
         };
+
+
+        logText.setText(logText.getText() + "\nMy MAC address: " + getMacAddr());
+
         mIntentFilter = new IntentFilter();
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
@@ -183,6 +235,39 @@ public class MainActivity extends AppCompatActivity {
             ipAddrStr += ipAddr[i]&0xFF;
         }
         return ipAddrStr;
+    }
+
+    private static String getMacAddr() {
+        String macAddresses = "";
+        try {
+            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface nif : all) {
+                //if (!nif.getName().equalsIgnoreCase("wlan0")) continue;
+
+                byte[] macBytes = nif.getHardwareAddress();
+                if (macBytes == null) {
+                    continue;
+                }
+
+                StringBuilder res1 = new StringBuilder();
+                for (byte b : macBytes) {
+                    res1.append(Integer.toHexString(b & 0xFF) + ":");
+                }
+
+                if (res1.length() > 0) {
+                    res1.deleteCharAt(res1.length() - 1);
+                }
+                macAddresses = macAddresses + ", " + nif.getName() + " : " +  res1.toString();
+            }
+        } catch (Exception ex) {
+            //handle exception
+        }
+        return macAddresses;
+    }
+
+    private void printInfo(){
+        mManager.requestConnectionInfo (mChannel,
+                mListener);
     }
 
 
