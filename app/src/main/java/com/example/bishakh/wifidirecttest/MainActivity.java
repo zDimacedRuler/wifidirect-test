@@ -9,6 +9,7 @@ import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.support.v7.app.AppCompatActivity;
@@ -159,10 +160,14 @@ public class MainActivity extends AppCompatActivity {
                 Log.v("DEBUG", "Group Formed: " + wifiP2pInfo.groupFormed);
                 logText.setText(logText.getText() + "\nGroup Formed: " + wifiP2pInfo.groupFormed);
 
-                if(wifiP2pInfo.isGroupOwner){
-                    Log.v("DEBUG", "I am group owner");
-                    logText.setText(logText.getText() + "\nI am group owner");
+                if(wifiP2pInfo.groupFormed){
+                    if(wifiP2pInfo.isGroupOwner){
+                        Log.v("DEBUG", "I am group owner");
+                        logText.setText(logText.getText() + "\nI am group owner");
+                    }
+                    mManager.requestGroupInfo(mChannel, groupInfoListener); 
                 }
+
 
 
                 try {
@@ -265,6 +270,17 @@ public class MainActivity extends AppCompatActivity {
         return macAddresses;
     }
 
+    WifiP2pManager.GroupInfoListener groupInfoListener = new WifiP2pManager.GroupInfoListener() {
+        @Override
+        public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+            Log.v("DEBUG", "GO SSID: " + wifiP2pGroup.getNetworkName());
+            logText.setText(logText.getText() + "\nGO SSID: " + wifiP2pGroup.getNetworkName());
+
+            Log.v("DEBUG", "GO PASSPHRASE: " + wifiP2pGroup.getPassphrase() );
+            logText.setText(logText.getText() + "\nGO PASSPHRASE: " + wifiP2pGroup.getPassphrase() );
+
+        }
+    };
     private void printInfo(){
         mManager.requestConnectionInfo (mChannel,
                 mListener);
