@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
     WifiP2pManager.ConnectionInfoListener mListener;
 
     // PeerListListener
-    WifiP2pManager.PeerListListener myPeerListListener =  new WifiP2pManager.PeerListListener() {
+    WifiP2pManager.PeerListListener myPeerListListener = new WifiP2pManager.PeerListListener() {
         @Override
         public void onPeersAvailable(WifiP2pDeviceList wifiP2pDeviceList) {
             Log.v("DEBUG", "Device list:");
@@ -55,14 +55,14 @@ public class MainActivity extends AppCompatActivity {
             int iii = 0;
             final Button deviceButtons[] = new Button[devicesCount];
             neighbourlayout.removeAllViews();
-            for (WifiP2pDevice device:deviceList){
+            for (WifiP2pDevice device : deviceList) {
                 Log.v("DEBUG", "Device: " + device.deviceAddress);
                 deviceButtons[iii] = new Button(getApplicationContext());
                 deviceButtons[iii].setText(device.deviceAddress);
                 deviceButtons[iii].setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        Button b = (Button)view;
+                        Button b = (Button) view;
                         Log.v("DEBUG", "Try to connect: " + b.getText());
                         //obtain a peer from the WifiP2pDeviceList
                         //WifiP2pDevice device;
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                                 Toast.makeText(getApplicationContext(), "Connection Success: " + config.deviceAddress,
                                         Toast.LENGTH_LONG).show();
                                 logText.setText(logText.getText() + "\nConnection Success: " + config.deviceAddress);
-                                mManager.requestConnectionInfo (mChannel,
+                                mManager.requestConnectionInfo(mChannel,
                                         mListener);
 
                             }
@@ -97,8 +97,6 @@ public class MainActivity extends AppCompatActivity {
 
         }
     };
-
-
 
 
     @Override
@@ -128,6 +126,17 @@ public class MainActivity extends AppCompatActivity {
         mainlayout.addView(discoverButton);
         mainlayout.addView(neighbourlayout);
         mainlayout.addView(logText);
+
+        mIntentFilter = new IntentFilter();
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this, myPeerListListener);
+
         discoverButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -149,35 +158,34 @@ public class MainActivity extends AppCompatActivity {
         mListener = new WifiP2pManager.ConnectionInfoListener() {
             @Override
             public void onConnectionInfoAvailable(WifiP2pInfo wifiP2pInfo) {
-                logText.setText(logText.getText() + "\n" +
-                        "INFO:");
+                logText.setText(logText.getText() + "\n" + "INFO:");
                 try {
 
                     Log.v("DEBUG", "Connection Group Owner address: " + wifiP2pInfo.groupOwnerAddress.toString());
                     logText.setText(logText.getText() + "\nConnection Group Owner address: " + wifiP2pInfo.groupOwnerAddress.toString());
-                }catch (Exception e){}
+                } catch (Exception e) {
+                }
 
                 Log.v("DEBUG", "Group Formed: " + wifiP2pInfo.groupFormed);
                 logText.setText(logText.getText() + "\nGroup Formed: " + wifiP2pInfo.groupFormed);
 
-                if(wifiP2pInfo.groupFormed){
-                    if(wifiP2pInfo.isGroupOwner){
+                if (wifiP2pInfo.groupFormed) {
+                    if (wifiP2pInfo.isGroupOwner) {
                         Log.v("DEBUG", "I am group owner");
                         logText.setText(logText.getText() + "\nI am group owner");
                     }
-                    mManager.requestGroupInfo(mChannel, groupInfoListener); 
+                    mManager.requestGroupInfo(mChannel, groupInfoListener);
                 }
 
 
-
                 try {
-                   String ip = getDottedDecimalIP(getLocalIPAddress());
+                    String ip = getDottedDecimalIP(getLocalIPAddress());
 
-                   Log.v("DEBUG", "My IP: " + ip);
-                   logText.setText(logText.getText() + "\nMy IP: " + ip);
-               }catch (Exception e){
+                    Log.v("DEBUG", "My IP: " + ip);
+                    logText.setText(logText.getText() + "\nMy IP: " + ip);
+                } catch (Exception e) {
 
-               }
+                }
 
             }
         };
@@ -185,20 +193,9 @@ public class MainActivity extends AppCompatActivity {
 
         logText.setText(logText.getText() + "\nMy MAC address: " + getMacAddr());
 
-        mIntentFilter = new IntentFilter();
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
-
-        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
-        mChannel = mManager.initialize(this, getMainLooper(), null);
-        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this, myPeerListListener);
-
         registerReceiver(mReceiver, mIntentFilter);
 
     }
-
 
 
     @Override
@@ -210,9 +207,9 @@ public class MainActivity extends AppCompatActivity {
 
     private byte[] getLocalIPAddress() {
         try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
                 NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
                     InetAddress inetAddress = enumIpAddr.nextElement();
                     if (!inetAddress.isLoopbackAddress()) {
                         if (inetAddress instanceof Inet4Address) { // fix for Galaxy Nexus. IPv4 is easy to use :-)
@@ -232,14 +229,14 @@ public class MainActivity extends AppCompatActivity {
 
     private String getDottedDecimalIP(byte[] ipAddr) {
         //convert to dotted decimal notation:
-        String ipAddrStr = "";
-        for (int i=0; i<ipAddr.length; i++) {
+        StringBuilder ipAddrStr = new StringBuilder();
+        for (int i = 0; i < ipAddr.length; i++) {
             if (i > 0) {
-                ipAddrStr += ".";
+                ipAddrStr.append(".");
             }
-            ipAddrStr += ipAddr[i]&0xFF;
+            ipAddrStr.append(ipAddr[i] & 0xFF);
         }
-        return ipAddrStr;
+        return ipAddrStr.toString();
     }
 
     private static String getMacAddr() {
@@ -262,7 +259,7 @@ public class MainActivity extends AppCompatActivity {
                 if (res1.length() > 0) {
                     res1.deleteCharAt(res1.length() - 1);
                 }
-                macAddresses = macAddresses + ", " + nif.getName() + " : " +  res1.toString();
+                macAddresses = macAddresses + ", " + nif.getName() + " : " + res1.toString();
             }
         } catch (Exception ex) {
             //handle exception
@@ -276,17 +273,15 @@ public class MainActivity extends AppCompatActivity {
             Log.v("DEBUG", "GO SSID: " + wifiP2pGroup.getNetworkName());
             logText.setText(logText.getText() + "\nGO SSID: " + wifiP2pGroup.getNetworkName());
 
-            Log.v("DEBUG", "GO PASSPHRASE: " + wifiP2pGroup.getPassphrase() );
-            logText.setText(logText.getText() + "\nGO PASSPHRASE: " + wifiP2pGroup.getPassphrase() );
+            Log.v("DEBUG", "GO PASSPHRASE: " + wifiP2pGroup.getPassphrase());
+            logText.setText(logText.getText() + "\nGO PASSPHRASE: " + wifiP2pGroup.getPassphrase());
 
         }
     };
-    private void printInfo(){
-        mManager.requestConnectionInfo (mChannel,
-                mListener);
+
+    private void printInfo() {
+        mManager.requestConnectionInfo(mChannel, mListener);
     }
-
-
 
 
 }
